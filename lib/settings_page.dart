@@ -47,12 +47,6 @@ class _SettingsPageState extends State<SettingsPage> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              const Text('Current URL: '),
-              Text(widget.initialUrl), // Display the current URL
-            ],
-          ),
           const SizedBox(height: 10),
           TextField(
             controller: _urlController,

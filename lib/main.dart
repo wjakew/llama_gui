@@ -60,10 +60,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController =
+      ScrollController(); // Add scroll controller
   List<String> _messages = []; // List to hold chat messages
-  String _ollamaUrl = 'http://192.168.0.221:11434'; // Default Ollama URL
+  String _ollamaUrl = 'http://localhost:11434'; // Default Ollama URL
   String _selectedModel = 'llama3.2'; // Default model
   List<String> _availableModels = []; // List to hold available models
+  bool _isLoading = false; // Add loading state variable
 
   @override
   void initState() {
@@ -73,19 +76,38 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _fetchAvailableModels() async {
     try {
-      final response = await http.get(Uri.parse('$_ollamaUrl/api/tags'));
+      final response = await http
+          .get(Uri.parse('$_ollamaUrl/api/tags'))
+          .timeout(const Duration(seconds: 30)); // Added timeout of 10 seconds
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
           _availableModels = List<String>.from(
-              data['models']); // Assuming the response has a 'models' key
+              data['models'].map((model) => model['name'])); // Extract names
         });
       } else {
         print('Failed to load models: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching models: $e');
+      // Optionally set an empty list to prevent null errors
+      setState(() {
+        _availableModels = [];
+      });
     }
+  }
+
+  void _scrollToBottom() {
+    // Add small delay to ensure the list has updated
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _sendMessage() async {
@@ -93,8 +115,10 @@ class _MyHomePageState extends State<MyHomePage> {
     if (prompt.isEmpty) return;
 
     setState(() {
-      _messages.add('You: $prompt'); // Add user message to chat
+      _messages.add('You: $prompt');
+      _isLoading = true;
     });
+    _scrollToBottom(); // Scroll after user message
 
     try {
       // Construct the URL
@@ -123,22 +147,26 @@ class _MyHomePageState extends State<MyHomePage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          _messages.add('Ollama: ${data['response']}'); // Add response to chat
+          _messages.add('Ollama: ${data['response']}');
+          _isLoading = false;
         });
+        _scrollToBottom(); // Scroll after response
       } else {
         setState(() {
           _messages.add('Error: Unable to get response from Ollama');
+          _isLoading = false;
         });
+        _scrollToBottom(); // Scroll after error
       }
     } catch (e) {
-      // Show the full error message in the chat
       setState(() {
-        _messages
-            .add('Error: ${e.toString()}'); // Display the full error message
+        _messages.add('Error: ${e.toString()}');
+        _isLoading = false;
       });
+      _scrollToBottom(); // Scroll after error
     }
 
-    _controller.clear(); // Clear the input field
+    _controller.clear();
   }
 
   void _clearChat() {
@@ -213,6 +241,37 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _buildMessageTile(String message) {
+    // Check if the message is from Ollama
+    bool isOllamaMessage = message.startsWith('Ollama:');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isOllamaMessage
+                ? Colors.green
+                : Colors.white, // Green border for Ollama messages
+            width: 1.0, // Border width
+          ),
+          borderRadius: BorderRadius.circular(8.0), // Rounded corners
+        ),
+        child: ListTile(
+          title: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              message,
+              style: TextStyle(
+                color: widget.isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,13 +339,29 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_messages[index]),
-                );
-              },
+            child: Stack(
+              children: [
+                ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    return _buildMessageTile(
+                        _messages[index]); // Use the new message tile
+                  },
+                ),
+                // Show loading indicator when _isLoading is true
+                if (_isLoading)
+                  const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Waiting for response...'),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
@@ -311,5 +386,12 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Clean up the controller
+    _controller.dispose();
+    super.dispose();
   }
 }
