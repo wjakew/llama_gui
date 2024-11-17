@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 class SettingsPage extends StatefulWidget {
   final String initialUrl;
   final Function(String) onUrlChanged;
+  final List<String> availableModels; // List of available models
+  final String selectedModel; // Currently selected model
+  final Function(String) onModelChanged; // Callback for model change
 
   const SettingsPage({
     Key? key,
     required this.initialUrl,
     required this.onUrlChanged,
+    required this.availableModels,
+    required this.selectedModel,
+    required this.onModelChanged,
   }) : super(key: key);
 
   @override
@@ -53,6 +59,22 @@ class _SettingsPageState extends State<SettingsPage> {
             decoration: const InputDecoration(
               labelText: 'Ollama URL',
             ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButton<String>(
+            value: widget.selectedModel,
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                widget.onModelChanged(newValue); // Update the selected model
+              }
+            },
+            items: widget.availableModels
+                .map<DropdownMenuItem<String>>((String model) {
+              return DropdownMenuItem<String>(
+                value: model,
+                child: Text(model),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 10),
           ElevatedButton(

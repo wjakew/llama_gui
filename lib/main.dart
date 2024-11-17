@@ -41,6 +41,31 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   List<String> _messages = []; // List to hold chat messages
   String _ollamaUrl = 'http://localhost:11434'; // Default Ollama URL
+  String _selectedModel = 'llama3.2'; // Default model
+  List<String> _availableModels = []; // List to hold available models
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAvailableModels(); // Fetch available models on initialization
+  }
+
+  Future<void> _fetchAvailableModels() async {
+    try {
+      final response = await http.get(Uri.parse('$_ollamaUrl/api/tags'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _availableModels = List<String>.from(
+              data['models']); // Assuming the response has a 'models' key
+        });
+      } else {
+        print('Failed to load models: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching models: $e');
+    }
+  }
 
   void _sendMessage() async {
     final prompt = _controller.text;
@@ -57,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       // Prepare the request body
       final requestBody = json.encode({
-        "model": "llama3.2",
+        "model": _selectedModel, // Use the selected model
         "prompt": prompt,
         "stream": false,
       });
@@ -152,6 +177,14 @@ class _MyHomePageState extends State<MyHomePage> {
           onUrlChanged: (newUrl) {
             setState(() {
               _ollamaUrl = newUrl; // Update the Ollama URL
+            });
+          },
+          availableModels:
+              _availableModels, // Pass available models to settings
+          selectedModel: _selectedModel, // Pass selected model to settings
+          onModelChanged: (newModel) {
+            setState(() {
+              _selectedModel = newModel; // Update the selected model
             });
           },
         );
