@@ -11,27 +11,48 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isDarkMode = false; // Variable to track dark mode state
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Llama GUI',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      theme: _isDarkMode
+          ? ThemeData.dark() // Use dark theme
+          : ThemeData.light(), // Use light theme
+      home: MyHomePage(
+        title: 'llama_gui',
+        isDarkMode: _isDarkMode,
+        onThemeChanged: (value) {
+          setState(() {
+            _isDarkMode = value; // Update the dark mode state
+          });
+        },
       ),
-      home: const MyHomePage(title: 'llama_gui'),
       debugShowCheckedModeBanner: false, // Remove debug banner
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({
+    super.key,
+    required this.title,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  });
 
   final String title;
+  final bool isDarkMode;
+  final ValueChanged<bool> onThemeChanged;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -40,7 +61,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   List<String> _messages = []; // List to hold chat messages
-  String _ollamaUrl = 'http://localhost:11434'; // Default Ollama URL
+  String _ollamaUrl = 'http://192.168.0.221:11434'; // Default Ollama URL
   String _selectedModel = 'llama3.2'; // Default model
   List<String> _availableModels = []; // List to hold available models
 
@@ -203,6 +224,17 @@ class _MyHomePageState extends State<MyHomePage> {
             child: IconButton(
               icon: const Icon(Icons.save_alt), // Export icon
               onPressed: _exportChat, // Export chat messages
+            ),
+          ),
+          Tooltip(
+            message: 'Toggle Dark Mode', // Tooltip message for dark mode toggle
+            child: IconButton(
+              icon: Icon(
+                widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              ),
+              onPressed: () {
+                widget.onThemeChanged(!widget.isDarkMode); // Toggle dark mode
+              },
             ),
           ),
           Tooltip(

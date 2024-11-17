@@ -4,11 +4,12 @@ Llama GUI is a Flutter application that connects to a local Ollama instance, all
 
 ## Features
 
-- Chat interface for sending prompts and receiving responses from the Ollama API.
-- Input field for entering prompts.
-- Send button to submit prompts.
-- Display area for chat messages.
-- Settings button for future configuration of the Ollama URL and model.
+- **Chat Interface**: Send prompts and receive responses from the Ollama API.
+- **Input Field**: Enter prompts in the text field at the bottom of the screen.
+- **Send Button**: Submit prompts to the Ollama API.
+- **Export Chat**: Export the entire chat history to a JSON file.
+- **Dark Mode Toggle**: Switch between light and dark themes for better visibility.
+- **Settings**: Update the Ollama URL and select the model for requests.
 
 ## Requirements
 
@@ -45,6 +46,8 @@ Llama GUI is a Flutter application that connects to a local Ollama instance, all
 - Enter a prompt in the text field at the bottom of the screen.
 - Press the send button to submit the prompt to the Ollama API.
 - The response from the Ollama model will be displayed in the chat area.
+- Use the **Export Chat** button to save the entire chat history as a JSON file. A file picker dialog will appear, allowing you to choose the save location.
+- Toggle the **Dark Mode** button to switch between light and dark themes for better visibility.
 
 ## Troubleshooting
 
@@ -57,7 +60,7 @@ Contributions are welcome! If you have suggestions for improvements or new featu
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## Acknowledgments
 
