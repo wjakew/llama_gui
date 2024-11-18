@@ -20,17 +20,17 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _isDarkMode = false; // Variable to track dark mode state
+  bool _isDarkMode = true; // Set dark mode to default
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Llama GUI',
+      title: 'altiplano',
       theme: _isDarkMode
           ? ThemeData.dark() // Use dark theme
           : ThemeData.light(), // Use light theme
       home: MyHomePage(
-        title: 'llama_gui',
+        title: 'altiplano',
         isDarkMode: _isDarkMode,
         onThemeChanged: (value) {
           setState(() {
