@@ -2,63 +2,103 @@
 
 ![altiplano logo](readme_src/logo.png)
 
-altiplano is a Flutter application that connects to a local Ollama instance, allowing users to interact with the Ollama API through a chat interface. Users can input prompts, send them to the Ollama model, and receive responses, all within a user-friendly interface.
+A Flutter desktop application that provides a modern chat interface for local Ollama models, featuring real-time streaming responses, customizable settings, and chat history management.
+
 ![Llama GUI Screenshot](readme_src/image.png)
+
 ## Features
 
-- **Chat Interface**: Send prompts and receive responses from the Ollama API.
-- **Input Field**: Enter prompts in the text field at the bottom of the screen.
-- **Send Button**: Submit prompts to the Ollama API.
-- **Export Chat**: Export the entire chat history to a JSON file.
-- **Dark Mode Toggle**: Switch between light and dark themes for better visibility.
-- **Settings**: Update the Ollama URL and select the model for requests.
+- **Streaming Responses**: Real-time message streaming from Ollama models
+- **Multi-Model Support**: Switch between any locally installed Ollama models
+- **Chat Management**:
+  - Export chats to JSON
+  - Clear chat history
+  - Copy messages to clipboard
+- **Customization**:
+  - Dark/Light theme toggle
+  - Adjustable model parameters (temperature, context length, etc.)
+  - Custom system prompts
+- **Server Settings**: Configure Ollama server URL and connection settings
 
 ## Requirements
 
-- Flutter SDK (version 2.0 or higher)
-- Dart SDK (version 2.12 or higher)
-- A running instance of the Ollama API
+- Flutter SDK (3.0 or higher)
+- Dart SDK (3.0 or higher)
+- Ollama installed and running locally
+- Supported platforms: Windows, macOS, Linux
 
 ## Installation
 
-1. **Clone the repository:**
+### From Source
+
+1. **Install Ollama**
+   Follow the installation instructions at [Ollama.ai](https://ollama.ai)
+
+2. **Download Altiplano**
    ```bash
-   git clone https://github.com/yourusername/llama_gui.git
-   cd llama_gui
+   git clone https://github.com/yourusername/altiplano.git
+   cd altiplano
    ```
 
-2. **Install dependencies:**
-   Make sure you have Flutter installed on your machine. Then, run:
+3. **Install Dependencies**
    ```bash
    flutter pub get
    ```
 
-3. **Run the Ollama server:**
-   Ensure that your local Ollama instance is running. The default URL used in the app is `http://127.0.0.1:11434`. Adjust this URL in the code if your server is running on a different address or port.
-
-4. **Run the application:**
-   Use the following command to run the app:
+4. **Run the Application**
    ```bash
    flutter run
    ```
+### From Release
+
+- Windows:
+  - Download the latest release from the [Releases](https://github.com/yourusername/altiplano/releases) page.
+  - Extract the zip file, and run command `Add-AppPackage -Path ".\altiplano.msix" -AllowUnsigned` - the current release is not signed.
+- MacOS:
+  - Download the latest release from the [Releases](https://github.com/yourusername/altiplano/releases) page.
+  - Extract the zip file, and copy the app to the Applications folder.
+
+
+## Configuration
+
+1. **Server Settings**
+   - Default URL: `http://127.0.0.1:11434`
+   - For emulators: Use `10.0.2.2` instead of `127.0.0.1`
+
+2. **Model Settings**
+   - Type the name of any installed Ollama model
 
 ## Usage
 
-- Open the app on your device or emulator.
-- Enter a prompt in the text field at the bottom of the screen.
-- Press the send button to submit the prompt to the Ollama API.
-- The response from the Ollama model will be displayed in the chat area.
-- Use the **Export Chat** button to save the entire chat history as a JSON file. A file picker dialog will appear, allowing you to choose the save location.
-- Toggle the **Dark Mode** button to switch between light and dark themes for better visibility.
+### Basic Chat
+1. Select your preferred model from the dropdown
+2. Type your message in the input field
+3. Press Enter or click Send
+4. View real-time streaming responses
+
+### Advanced Features
+- **Export**: Save chat history as JSON via the menu
+- **Theme**: Toggle dark/light mode using the theme switch
+- **Copy**: Click the copy icon on any message to copy its content
 
 ## Troubleshooting
 
-- If you encounter a connection error, ensure that the Ollama server is running and accessible at the specified URL.
-- If you are using an emulator, remember to use `10.0.2.2` instead of `127.0.0.1` to connect to your host machine's localhost.
+### Common Issues
+- **Connection Failed**: Verify Ollama is running (`ollama serve`)
+- **Model Not Found**: Ensure model is installed (`ollama pull modelname`)
+- **Slow Responses**: Check system resources and model requirements
+
+### Logs
+- Application logs are available in the console when running in debug mode
+- Server logs can be found in the Ollama output
 
 ## Contributing
 
-Contributions are welcome! If you have suggestions for improvements or new features, feel free to open an issue or submit a pull request.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
 ## License
 
@@ -66,5 +106,6 @@ This project is licensed under the MIT License.
 
 ## Acknowledgments
 
-- [Flutter](https://flutter.dev/) - The framework used for building the app.
-- [Ollama](https://ollama.com/) - The API that powers the chat functionality.
+- Built with [Flutter](https://flutter.dev/)
+- Powered by [Ollama](https://ollama.ai/)
+- Icons from [Material Design Icons](https://materialdesignicons.com/)
