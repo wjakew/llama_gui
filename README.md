@@ -1,7 +1,7 @@
 # Llama GUI
 
 Llama GUI is a Flutter application that connects to a local Ollama instance, allowing users to interact with the Ollama API through a chat interface. Users can input prompts, send them to the Ollama model, and receive responses, all within a user-friendly interface.
-
+![Llama GUI Screenshot](readme_src/image.png)
 ## Features
 
 - **Chat Interface**: Send prompts and receive responses from the Ollama API.

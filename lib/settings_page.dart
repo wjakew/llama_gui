@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class SettingsPage extends StatefulWidget {
   final String initialUrl;
   final Function(String) onUrlChanged;
-  final List<String> availableModels; // List of available models
-  final String selectedModel; // Currently selected model
-  final Function(String) onModelChanged; // Callback for model change
+  final List<String> availableModels;
+  final String selectedModel;
+  final Function(String) onModelChanged;
 
   const SettingsPage({
     Key? key,
@@ -22,22 +22,13 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late TextEditingController _urlController;
+  late TextEditingController _modelController;
 
   @override
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.initialUrl);
-  }
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
-  }
-
-  void _updateUrl() {
-    widget.onUrlChanged(_urlController.text);
-    Navigator.of(context).pop(); // Close the settings window
+    _modelController = TextEditingController(text: widget.selectedModel);
   }
 
   @override
@@ -47,36 +38,47 @@ class _SettingsPageState extends State<SettingsPage> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 10),
           TextField(
             controller: _urlController,
             decoration: const InputDecoration(
               labelText: 'Ollama URL',
+              hintText: 'http://localhost:11434',
             ),
+            onChanged: widget.onUrlChanged,
           ),
-          const SizedBox(height: 10),
-          DropdownButton<String>(
-            value: widget.selectedModel,
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                widget.onModelChanged(newValue); // Update the selected model
-              }
-            },
-            items: widget.availableModels
-                .map<DropdownMenuItem<String>>((String model) {
-              return DropdownMenuItem<String>(
-                value: model,
-                child: Text(model),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: _updateUrl,
-            child: const Text('Change'),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _modelController,
+            decoration: const InputDecoration(
+              labelText: 'Model Name',
+              hintText: 'Enter model name',
+            ),
           ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            widget.onUrlChanged(_urlController.text);
+            widget.onModelChanged(_modelController.text);
+            Navigator.of(context).pop();
+          },
+          child: const Text('Save'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('Close'),
+        ),
+      ],
     );
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _modelController.dispose();
+    super.dispose();
   }
 }

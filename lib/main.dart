@@ -6,6 +6,7 @@ import 'dart:io'; // Import for Platform checks
 import 'settings_page.dart'; // Import the settings page
 import 'package:path_provider/path_provider.dart'; // Import for path provider
 import 'package:file_picker/file_picker.dart'; // Import for file picker
+import 'package:flutter/services.dart'; // Import for clipboard functionality
 
 void main() {
   runApp(const MyApp());
@@ -78,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final response = await http
           .get(Uri.parse('$_ollamaUrl/api/tags'))
-          .timeout(const Duration(seconds: 30)); // Added timeout of 10 seconds
+          .timeout(const Duration(seconds: 30)); // Added timeout of 30 seconds
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
@@ -116,54 +117,66 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _messages.add('You: $prompt');
+      _messages
+          .add('Ollama: '); // Add empty Ollama message that will be updated
       _isLoading = true;
     });
-    _scrollToBottom(); // Scroll after user message
+    _scrollToBottom();
 
     try {
-      // Construct the URL
-      final uri = Uri.parse(_ollamaUrl + '/api/generate');
-      print('Sending request to: $uri'); // Print the URI to the console
-
-      // Prepare the request body
-      final requestBody = json.encode({
-        "model": _selectedModel, // Use the selected model
+      final uri = Uri.parse('$_ollamaUrl/api/generate');
+      final request = http.Request('POST', uri);
+      request.headers['Content-Type'] = 'application/json';
+      request.body = json.encode({
+        "model": _selectedModel,
         "prompt": prompt,
-        "stream": false,
+        "stream": true,
       });
 
-      // Send request to Ollama API with a timeout
-      final response = await http
-          .post(
-            uri, // Use the constructed URI
-            headers: {'Content-Type': 'application/json'},
-            body: requestBody, // Use the prepared request body
-          )
-          .timeout(const Duration(seconds: 60)); // Set timeout duration here
-
-      print('Response status: ${response.statusCode}'); // Log response status
-      print('Response body: ${response.body}');
+      final response = await request.send();
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final stream = response.stream.transform(utf8.decoder);
+        String currentResponse = '';
+
+        await for (final chunk in stream) {
+          // Split by newlines as each line is a separate JSON object
+          for (final line in chunk.split('\n')) {
+            if (line.isEmpty) continue;
+
+            try {
+              final data = json.decode(line);
+              if (data['response'] != null) {
+                currentResponse += data['response'];
+                setState(() {
+                  // Update the last message (Ollama's response)
+                  _messages[_messages.length - 1] = 'Ollama: $currentResponse';
+                });
+                _scrollToBottom();
+              }
+            } catch (e) {
+              print('Error parsing JSON: $e');
+            }
+          }
+        }
+
         setState(() {
-          _messages.add('Ollama: ${data['response']}');
           _isLoading = false;
         });
-        _scrollToBottom(); // Scroll after response
       } else {
         setState(() {
-          _messages.add('Error: Unable to get response from Ollama');
+          _messages[_messages.length - 1] =
+              'Error: Unable to get response from Ollama';
           _isLoading = false;
         });
-        _scrollToBottom(); // Scroll after error
+        _scrollToBottom();
       }
     } catch (e) {
       setState(() {
-        _messages.add('Error: ${e.toString()}');
+        _messages[_messages.length - 1] = 'Error: ${e.toString()}';
         _isLoading = false;
       });
-      _scrollToBottom(); // Scroll after error
+      _scrollToBottom();
     }
 
     _controller.clear();
@@ -267,6 +280,15 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
+          trailing:
+              isOllamaMessage // Add a copy button only for Ollama messages
+                  ? IconButton(
+                      icon: const Icon(Icons.copy),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: message));
+                      },
+                    )
+                  : null,
         ),
       ),
     );
@@ -314,9 +336,8 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Center(
               child: Text(
-                _ollamaUrl,
-                style:
-                    const TextStyle(fontSize: 16), // Adjust font size as needed
+                '$_ollamaUrl - $_selectedModel',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
           ),
@@ -351,14 +372,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 // Show loading indicator when _isLoading is true
                 if (_isLoading)
-                  const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Waiting for response...'),
-                      ],
+                  Container(
+                    color: Colors
+                        .black54, // Background color for the loading overlay
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text(
+                            'Waiting for response...',
+                            style: TextStyle(
+                              color: Colors.white, // Text color for visibility
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
