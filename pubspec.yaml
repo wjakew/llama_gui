@@ -1,8 +1,16 @@
 name: altiplano
-description: "A new Flutter project."
+description: "A local gui application for Ollama"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+msix_config:
+  display_name: Altiplano
+  publisher_display_name: Jakub Wawak
+  identity_name: com.jakubwawak.altiplano
+  msix_version: 1.0.0.0
+  logo_path: assets/logo.png
+  capabilities: internetClient
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -39,6 +47,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  msix: ^3.16.8
 
 dev_dependencies:
   flutter_test:
@@ -91,6 +100,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: GeistMono
+      fonts:
+        - asset: fonts/GeistMono-Regular.ttf
+          weight: 400
+        - asset: fonts/GeistMono-Bold.ttf
+          weight: 700
 
   assets:
     - assets/logo.png

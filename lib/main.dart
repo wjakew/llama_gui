@@ -21,22 +21,28 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isDarkMode = true; // Set dark mode to default
+  final String _version = '1.0.0'; // Add version variable
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'altiplano',
-      theme: _isDarkMode
-          ? ThemeData.dark() // Use dark theme
-          : ThemeData.light(), // Use light theme
+      theme: ThemeData(
+        fontFamily: 'GeistMono', // Set the default font family to GeistMono
+        brightness: _isDarkMode
+            ? Brightness.dark
+            : Brightness.light, // Set brightness based on dark mode
+        // You can customize other theme properties here if needed
+      ),
       home: MyHomePage(
-        title: 'altiplano',
+        title: 'altiplano', // Keep the main title
         isDarkMode: _isDarkMode,
         onThemeChanged: (value) {
           setState(() {
             _isDarkMode = value; // Update the dark mode state
           });
         },
+        version: _version,
       ),
       debugShowCheckedModeBanner: false, // Remove debug banner
     );
@@ -49,11 +55,13 @@ class MyHomePage extends StatefulWidget {
     required this.title,
     required this.isDarkMode,
     required this.onThemeChanged,
+    required this.version,
   });
 
   final String title;
   final bool isDarkMode;
   final ValueChanged<bool> onThemeChanged;
+  final String version;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -298,7 +306,16 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Row(
+          children: [
+            Text(widget.title), // Main title
+            const SizedBox(width: 8), // Add some spacing
+            Text(
+              'v${widget.version}', // Use widget.version instead of _version
+              style: const TextStyle(fontSize: 12), // Smaller font size
+            ),
+          ],
+        ),
         actions: [
           Tooltip(
             message: 'Export Chat', // Tooltip message for export chat
@@ -350,10 +367,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     context); // Open terminal emulator
               },
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _closeWindow, // Close window
           ),
         ],
       ),
