@@ -7,6 +7,7 @@ import 'settings_page.dart'; // Import the settings page
 import 'package:path_provider/path_provider.dart'; // Import for path provider
 import 'package:file_picker/file_picker.dart'; // Import for file picker
 import 'package:flutter/services.dart'; // Import for clipboard functionality
+import 'prompt_settings_dialog.dart'; // Import the new dialog
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +22,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isDarkMode = true; // Set dark mode to default
-  final String _version = '1.0.0'; // Add version variable
+  final String _version = '1.1.0'; // Add version variable
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +70,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode(); // Create a FocusNode
   final ScrollController _scrollController =
       ScrollController(); // Add scroll controller
   List<String> _messages = []; // List to hold chat messages
@@ -76,6 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _selectedModel = 'llama3.2'; // Default model
   List<String> _availableModels = []; // List to hold available models
   bool _isLoading = false; // Add loading state variable
+  bool _wholeConversation = false; // Set to false by default
 
   @override
   void initState() {
@@ -123,6 +126,15 @@ class _MyHomePageState extends State<MyHomePage> {
     final prompt = _controller.text;
     if (prompt.isEmpty) return;
 
+    String finalPrompt = prompt; // Initialize finalPrompt with the user input
+
+    // Check if wholeConversation is true and append the latest message
+    if (_wholeConversation && _messages.isNotEmpty) {
+      final latestMessage = _messages.last; // Get the latest message
+      finalPrompt =
+          "I'm referring to the latest message: $latestMessage\n$prompt"; // Prepend the latest message
+    }
+
     setState(() {
       _messages.add('You: $prompt');
       _messages
@@ -137,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
       request.headers['Content-Type'] = 'application/json';
       request.body = json.encode({
         "model": _selectedModel,
-        "prompt": prompt,
+        "prompt": finalPrompt, // Use finalPrompt instead of prompt
         "stream": true,
       });
 
@@ -188,6 +200,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     _controller.clear();
+    _focusNode.requestFocus(); // Set focus back to the text field
   }
 
   void _clearChat() {
@@ -255,6 +268,22 @@ class _MyHomePageState extends State<MyHomePage> {
           onModelChanged: (newModel) {
             setState(() {
               _selectedModel = newModel; // Update the selected model
+            });
+          },
+        );
+      },
+    );
+  }
+
+  void _openPromptSettings() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return PromptSettingsDialog(
+          wholeConversation: _wholeConversation,
+          onWholeConversationChanged: (value) {
+            setState(() {
+              _wholeConversation = value; // Update the whole conversation state
             });
           },
         );
@@ -414,10 +443,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter your prompt',
+                    focusNode: _focusNode, // Assign the FocusNode
+                    decoration: InputDecoration(
+                      hintText: _wholeConversation
+                          ? 'Enter your prompt (context activated)'
+                          : 'Enter your prompt',
                     ),
+                    onSubmitted: (value) {
+                      _sendMessage(); // Trigger send message on Enter
+                    },
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings), // Settings button
+                  onPressed: _openPromptSettings, // Open settings dialog
                 ),
                 IconButton(
                   icon: const Icon(Icons.send),
@@ -435,6 +474,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _scrollController.dispose(); // Clean up the controller
     _controller.dispose();
+    _focusNode.dispose(); // Dispose of the FocusNode
     super.dispose();
   }
 }
