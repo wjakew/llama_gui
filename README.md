@@ -14,6 +14,7 @@ A Flutter desktop application that provides a modern chat interface for local Ol
   - Export chats to JSON
   - Clear chat history
   - Copy messages to clipboard
+  - Add context to the conversation - whole conversation or last message only
 - **Customization**:
   - Dark/Light theme toggle
   - Adjustable model parameters (temperature, context length, etc.)
