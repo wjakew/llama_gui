@@ -49,6 +49,16 @@ A Flutter desktop application that provides a modern chat interface for local Ol
    ```bash
    flutter run
    ```
+5. **Build the Application**
+   ```bash
+   flutter build windows
+   ```
+   or 
+   ```bash
+   flutter pub run msix:create
+   ```
+   to build the windows installer.
+
 ### From Release
 
 - Windows:
