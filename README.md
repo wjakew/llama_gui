@@ -17,6 +17,8 @@ A Flutter desktop application that provides a modern chat interface for local Ol
 - Chat saving and loading functionality
 - Message copying and conversation export
 
+![Llama GUI Screenshot 2](readme_src/image2.png)
+
 ## Requirements
 
 - Flutter SDK (3.0 or higher)
