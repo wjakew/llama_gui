@@ -8,18 +8,14 @@ A Flutter desktop application that provides a modern chat interface for local Ol
 
 ## Features
 
-- **Streaming Responses**: Real-time message streaming from Ollama models
-- **Multi-Model Support**: Switch between any locally installed Ollama models
-- **Chat Management**:
-  - Export chats to JSON
-  - Clear chat history
-  - Copy messages to clipboard
-  - Add context to the conversation - whole conversation or last message only
-- **Customization**:
-  - Dark/Light theme toggle
-  - Adjustable model parameters (temperature, context length, etc.)
-  - Custom system prompts
-- **Server Settings**: Configure Ollama server URL and connection settings
+- Real-time streaming responses from Ollama models
+- Support for multiple Ollama models with easy switching
+- Chat history management with export/import capabilities
+- Customizable settings including dark/light theme
+- System prompt customization and context control
+- Built-in terminal emulator for model management
+- Chat saving and loading functionality
+- Message copying and conversation export
 
 ## Requirements
 

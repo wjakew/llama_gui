@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart'; // Import for path provider
 import 'package:file_picker/file_picker.dart'; // Import for file picker
 import 'package:flutter/services.dart'; // Import for clipboard functionality
 import 'prompt_settings_dialog.dart'; // Import the new dialog
+import 'package:shared_preferences/shared_preferences.dart'; // Import for shared preferences
 
 void main() {
   runApp(const MyApp());
@@ -22,7 +23,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isDarkMode = true; // Set dark mode to default
-  final String _version = '1.1.0'; // Add version variable
+  final String _version = '1.2.0'; // Add version variable
 
   @override
   Widget build(BuildContext context) {
@@ -68,24 +69,49 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+class ChatSession {
+  String title; // Title of the chat session
+  final List<String> messages; // List of messages in the chat session
+
+  ChatSession({required this.title, required this.messages});
+
+  // Convert ChatSession to JSON format
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'messages': messages,
+    };
+  }
+
+  // Create a ChatSession from JSON format
+  static ChatSession fromJson(Map<String, dynamic> json) {
+    return ChatSession(
+      title: json['title'],
+      messages: List<String>.from(json['messages']),
+    );
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode(); // Create a FocusNode
-  final ScrollController _scrollController =
-      ScrollController(); // Add scroll controller
+  final TextEditingController _controller = TextEditingController(); // Controller for the text input
+  final FocusNode _focusNode = FocusNode(); // Create a FocusNode for the text field
+  final ScrollController _scrollController = ScrollController(); // Add scroll controller for the message list
   List<String> _messages = []; // List to hold chat messages
   String _ollamaUrl = 'http://localhost:11434'; // Default Ollama URL
   String _selectedModel = 'llama3.2'; // Default model
   List<String> _availableModels = []; // List to hold available models
   bool _isLoading = false; // Add loading state variable
   bool _wholeConversation = false; // Set to false by default
+  List<ChatSession> _savedChats = []; // List to hold saved chat sessions
 
   @override
   void initState() {
     super.initState();
     _fetchAvailableModels(); // Fetch available models on initialization
+    _loadSavedChats(); // Load saved chats on initialization
   }
 
+  // Fetch available models from the Ollama API
   Future<void> _fetchAvailableModels() async {
     try {
       final response = await http
@@ -109,6 +135,37 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Load saved chat sessions from shared preferences
+  Future<void> _loadSavedChats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String>? chatData = prefs.getStringList('savedChats');
+    if (chatData != null) {
+      setState(() {
+        _savedChats = chatData.map((data) {
+          final json = jsonDecode(data);
+          return ChatSession.fromJson(json);
+        }).toList();
+      });
+    }
+  }
+
+  // Save the current chat session
+  Future<void> _saveChat() async {
+    // Create a deep copy of the messages
+    final List<String> messagesCopy = List.from(_messages);
+
+    final newChat = ChatSession(
+        title: 'Chat ${_savedChats.length + 1}', messages: messagesCopy);
+    setState(() {
+      _savedChats.add(newChat);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> chatData =
+        _savedChats.map((chat) => jsonEncode(chat.toJson())).toList();
+    await prefs.setStringList('savedChats', chatData);
+  }
+
+  // Scroll to the bottom of the message list
   void _scrollToBottom() {
     // Add small delay to ensure the list has updated
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -122,6 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  // Send a message to the Ollama API
   void _sendMessage() async {
     final prompt = _controller.text;
     if (prompt.isEmpty) return;
@@ -203,12 +261,18 @@ class _MyHomePageState extends State<MyHomePage> {
     _focusNode.requestFocus(); // Set focus back to the text field
   }
 
+  // Clear the chat messages
   void _clearChat() {
+    if (_messages.isNotEmpty) {
+      // Check if there are messages to save
+      _saveChat(); // Save chat before clearing
+    }
     setState(() {
       _messages.clear(); // Clear the chat messages
     });
   }
 
+  // Export the chat messages to a file
   Future<void> _exportChat() async {
     // Convert messages to JSON
     final chatJson = json.encode(_messages);
@@ -245,12 +309,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Close the application window
   void _closeWindow() {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       exit(0); // Close the application
     }
   }
 
+  // Open the settings dialog
   void _openSettings() {
     showDialog(
       context: context,
@@ -275,6 +341,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  // Open the prompt settings dialog
   void _openPromptSettings() {
     showDialog(
       context: context,
@@ -291,6 +358,99 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  // Open the saved chats dialog
+  void _openSavedChats() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Saved Chats'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              itemCount: _savedChats.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(_savedChats[index].title),
+                  onTap: () {
+                    // Load the selected chat into the main screen
+                    setState(() {
+                      _messages = List.from(
+                          _savedChats[index].messages); // Load selected chat
+                      _scrollToBottom(); // Scroll to the bottom to show the latest message
+                    });
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit), // Edit button icon
+                    onPressed: () {
+                      _renameChatDialog(index); // Open rename dialog
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Open a dialog to rename a saved chat
+  void _renameChatDialog(int index) {
+    final TextEditingController _renameController =
+        TextEditingController(text: _savedChats[index].title);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Rename Chat'),
+          content: TextField(
+            controller: _renameController,
+            decoration: const InputDecoration(hintText: 'Enter new chat name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _savedChats[index].title =
+                      _renameController.text; // Update the chat title
+                });
+                _saveChatList(); // Save the updated chat list
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Save'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            },
+          ],
+        );
+      },
+    );
+  }
+
+  // Save the updated list of saved chats to shared preferences
+  Future<void> _saveChatList() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> chatData =
+        _savedChats.map((chat) => jsonEncode(chat.toJson())).toList();
+    await prefs.setStringList('savedChats', chatData);
+  }
+
+  // Build a message tile for displaying messages
   Widget _buildMessageTile(String message) {
     // Check if the message is from Ollama
     bool isOllamaMessage = message.startsWith('Ollama:');
@@ -344,6 +504,10 @@ class _MyHomePageState extends State<MyHomePage> {
               style: const TextStyle(fontSize: 12), // Smaller font size
             ),
           ],
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: _openSavedChats, // Open saved chats on menu button press
         ),
         actions: [
           Tooltip(
@@ -455,6 +619,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.save), // Save button icon
+                  onPressed: _saveChat, // Save chat when pressed
+                  tooltip: 'Save Chat', // Tooltip for the save button
+                ),
+                IconButton(
                   icon: const Icon(Icons.settings), // Settings button
                   onPressed: _openPromptSettings, // Open settings dialog
                 ),
@@ -473,8 +642,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _scrollController.dispose(); // Clean up the controller
-    _controller.dispose();
+    _controller.dispose(); // Dispose of the text controller
     _focusNode.dispose(); // Dispose of the FocusNode
-    super.dispose();
+    super.dispose(); // Call the superclass dispose method
   }
 }
