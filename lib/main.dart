@@ -528,6 +528,41 @@ class _MyHomePageState extends State<MyHomePage> {
     await prefs.setStringList('savedChats', chatData);
   }
 
+  void _editChatName(ChatSession chat) {
+    TextEditingController controller = TextEditingController(text: chat.title);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Chat Name'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'Enter new chat name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  chat.title = controller.text; // Update the chat title
+                });
+                _saveChatList(); // Save the updated chat list
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -630,11 +665,24 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                   Navigator.of(context).pop(); // Close the drawer
                 },
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete), // Delete button icon
-                  onPressed: () {
-                    _deleteChatDialog(chat); // Open delete confirmation dialog
-                  },
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit), // Edit button icon
+                      onPressed: () {
+                        _editChatName(
+                            chat); // Call the method to edit chat name
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete), // Delete button icon
+                      onPressed: () {
+                        _deleteChatDialog(
+                            chat); // Open delete confirmation dialog
+                      },
+                    ),
+                  ],
                 ),
               ),
             ListTile(
