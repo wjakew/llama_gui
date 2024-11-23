@@ -434,6 +434,16 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           actions: [
+            // Move Clear All button to the actions
+            TextButton(
+              onPressed: () {
+                _clearAllChats(); // Call the method to clear all chats
+              },
+              child: const Text(
+                'Clear All',
+                style: TextStyle(color: Colors.red), // Change color to red
+              ),
+            ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
@@ -586,6 +596,38 @@ class _MyHomePageState extends State<MyHomePage> {
                 Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Add this new method to clear all saved chats
+  void _clearAllChats() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirm Clear All'),
+          content:
+              const Text('Are you sure you want to clear all saved chats?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _savedChats.clear(); // Clear the saved chats list
+                });
+                _saveChatList(); // Save the updated empty chat list
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Clear All'),
             ),
           ],
         );
