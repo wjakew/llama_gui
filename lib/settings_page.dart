@@ -33,11 +33,12 @@ class SettingsPage extends StatelessWidget {
             controller: TextEditingController(text: initialUrl),
           ),
           TextField(
-            controller: TextEditingController(text: selectedModel),
             decoration: const InputDecoration(
               labelText: 'Model Name',
               hintText: 'Enter model name',
             ),
+            onChanged: onModelChanged,
+            controller: TextEditingController(text: selectedModel),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

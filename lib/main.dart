@@ -389,120 +389,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  // Open the saved chats dialog
-  void _openSavedChats() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Saved Chats'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              itemCount: _savedChats.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_savedChats[index].title),
-                  onTap: () {
-                    // Load the selected chat into the main screen
-                    setState(() {
-                      _messages = List.from(
-                          _savedChats[index].messages); // Load selected chat
-                      _scrollToBottom(); // Scroll to the bottom to show the latest message
-                    });
-                    Navigator.of(context).pop(); // Close the dialog
-                  },
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit), // Edit button icon
-                        onPressed: () {
-                          _renameChatDialog(index); // Open rename dialog
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete), // Delete button icon
-                        onPressed: () {
-                          _deleteChat(index); // Call delete function
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          actions: [
-            // Move Clear All button to the actions
-            TextButton(
-              onPressed: () {
-                _clearAllChats(); // Call the method to clear all chats
-              },
-              child: const Text(
-                'Clear All',
-                style: TextStyle(color: Colors.red), // Change color to red
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Open a dialog to rename a saved chat
-  void _renameChatDialog(int index) {
-    final TextEditingController _renameController =
-        TextEditingController(text: _savedChats[index].title);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Rename Chat'),
-          content: TextField(
-            controller: _renameController,
-            decoration: const InputDecoration(hintText: 'Enter new chat name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _savedChats[index].title =
-                      _renameController.text; // Update the chat title
-                });
-                _saveChatList(); // Save the updated chat list
-                _loadSavedChats(); // Reload saved chats after renaming
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Save'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Save the updated list of saved chats to shared preferences
-  Future<void> _saveChatList() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> chatData =
-        _savedChats.map((chat) => jsonEncode(chat.toJson())).toList();
-    await prefs.setStringList('savedChats', chatData);
-  }
-
   // Add this new method to handle selecting a message as context
   void _selectMessageAsContext(String message) {
     setState(() {
@@ -572,7 +458,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // Add this new method to handle chat deletion with confirmation
-  void _deleteChat(int index) {
+  void _deleteChatDialog(ChatSession chat) {
     showDialog(
       context: context,
       builder: (context) {
@@ -589,10 +475,9 @@ class _MyHomePageState extends State<MyHomePage> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  _savedChats.removeAt(index); // Remove the selected chat
+                  _savedChats.remove(chat); // Remove the selected chat
                 });
                 _saveChatList(); // Save the updated chat list
-                _loadSavedChats(); // Reload saved chats after deletion
                 Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text('Delete'),
@@ -635,6 +520,14 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  // Save the updated list of saved chats to shared preferences
+  Future<void> _saveChatList() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> chatData =
+        _savedChats.map((chat) => jsonEncode(chat.toJson())).toList();
+    await prefs.setStringList('savedChats', chatData);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -649,9 +542,14 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: _openSavedChats, // Open saved chats on menu button press
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              Scaffold.of(context)
+                  .openDrawer(); // Open the drawer on menu button press
+            },
+          ),
         ),
         actions: [
           Tooltip(
@@ -693,26 +591,61 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: _openSettings, // Open settings window
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Center(
-              child: Text(
-                '$_ollamaUrl - $_selectedModel',
-                style: const TextStyle(fontSize: 16),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              child: Text('Settings and Chats'),
+              decoration: BoxDecoration(
+                color: Colors.purple,
               ),
             ),
-          ),
-          Tooltip(
-            message: 'Open terminal', // Tooltip message for terminal
-            child: IconButton(
-              icon: const Icon(Icons.terminal),
-              onPressed: () {
-                TerminalEmulator.openTerminal(
-                    context); // Open terminal emulator
-              },
+            // Display the current Ollama URL and selected model without labels
+            ListTile(
+              title: Text(
+                _ollamaUrl, // Display current Ollama URL without label
+                style:
+                    TextStyle(color: Colors.green), // Set text color to green
+              ),
             ),
-          ),
-        ],
+            ListTile(
+              title: Text(
+                _selectedModel, // Display selected model without label
+                style:
+                    TextStyle(color: Colors.green), // Set text color to green
+              ),
+            ),
+            // List of saved chats
+            for (var chat in _savedChats)
+              ListTile(
+                title: Text(chat.title),
+                onTap: () {
+                  // Load the selected chat into the main screen
+                  setState(() {
+                    _messages = List.from(chat.messages); // Load selected chat
+                    _scrollToBottom(); // Scroll to the bottom to show the latest message
+                  });
+                  Navigator.of(context).pop(); // Close the drawer
+                },
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete), // Delete button icon
+                  onPressed: () {
+                    _deleteChatDialog(chat); // Open delete confirmation dialog
+                  },
+                ),
+              ),
+            ListTile(
+              title: const Text(
+                'Clear All Chats',
+                style: TextStyle(color: Colors.red), // Change text color to red
+              ),
+              onTap: _clearAllChats, // Call the method to clear all chats
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [

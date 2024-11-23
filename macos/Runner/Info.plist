@@ -30,5 +30,9 @@
 	<string>NSApplication</string>
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<key>CFBundleName</key>
+	<string>altiplano</string>
+	<key>CFBundleDisplayName</key>
+	<string>altiplano</string>
 </dict>
 </plist>
