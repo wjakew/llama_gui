@@ -93,9 +93,12 @@ class ChatSession {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _controller = TextEditingController(); // Controller for the text input
-  final FocusNode _focusNode = FocusNode(); // Create a FocusNode for the text field
-  final ScrollController _scrollController = ScrollController(); // Add scroll controller for the message list
+  final TextEditingController _controller =
+      TextEditingController(); // Controller for the text input
+  final FocusNode _focusNode =
+      FocusNode(); // Create a FocusNode for the text field
+  final ScrollController _scrollController =
+      ScrollController(); // Add scroll controller for the message list
   List<String> _messages = []; // List to hold chat messages
   String _ollamaUrl = 'http://localhost:11434'; // Default Ollama URL
   String _selectedModel = 'llama3.2'; // Default model
@@ -103,6 +106,9 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isLoading = false; // Add loading state variable
   bool _wholeConversation = false; // Set to false by default
   List<ChatSession> _savedChats = []; // List to hold saved chat sessions
+  bool _saveChatAfterClearing =
+      false; // New variable to track saving chat after clearing
+  String? _contextMessage; // New variable to hold the selected context message
 
   @override
   void initState() {
@@ -155,7 +161,10 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<String> messagesCopy = List.from(_messages);
 
     final newChat = ChatSession(
-        title: 'Chat ${_savedChats.length + 1}', messages: messagesCopy);
+        title: DateTime.now()
+            .toLocal()
+            .toString(), // Use current date and time as title
+        messages: messagesCopy);
     setState(() {
       _savedChats.add(newChat);
     });
@@ -163,6 +172,11 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<String> chatData =
         _savedChats.map((chat) => jsonEncode(chat.toJson())).toList();
     await prefs.setStringList('savedChats', chatData);
+
+    // Show notification that chat was saved
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Chat saved successfully!')),
+    );
   }
 
   // Scroll to the bottom of the message list
@@ -190,7 +204,12 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_wholeConversation && _messages.isNotEmpty) {
       final latestMessage = _messages.last; // Get the latest message
       finalPrompt =
-          "I'm referring to the latest message: $latestMessage\n$prompt"; // Prepend the latest message
+          "I'm referring to the following message as context: $latestMessage\n$prompt"; // Prepend the latest message
+    }
+
+    if (_contextMessage != null) {
+      finalPrompt =
+          "I'm referring to the following message as context: $_contextMessage\n$prompt"; // Prepend the context message
     }
 
     setState(() {
@@ -263,13 +282,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Clear the chat messages
   void _clearChat() {
-    if (_messages.isNotEmpty) {
+    if (_messages.isNotEmpty && _saveChatAfterClearing) {
       // Check if there are messages to save
       _saveChat(); // Save chat before clearing
     }
     setState(() {
       _messages.clear(); // Clear the chat messages
     });
+
+    // Show notification that chat was cleared
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Chat cleared successfully!')),
+    );
   }
 
   // Export the chat messages to a file
@@ -336,6 +360,13 @@ class _MyHomePageState extends State<MyHomePage> {
               _selectedModel = newModel; // Update the selected model
             });
           },
+          saveChatAfterClearing:
+              _saveChatAfterClearing, // Pass the new variable
+          onSaveChatAfterClearingChanged: (value) {
+            setState(() {
+              _saveChatAfterClearing = value ?? false; // Handle null case
+            });
+          },
         );
       },
     );
@@ -381,11 +412,22 @@ class _MyHomePageState extends State<MyHomePage> {
                     });
                     Navigator.of(context).pop(); // Close the dialog
                   },
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit), // Edit button icon
-                    onPressed: () {
-                      _renameChatDialog(index); // Open rename dialog
-                    },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit), // Edit button icon
+                        onPressed: () {
+                          _renameChatDialog(index); // Open rename dialog
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete), // Delete button icon
+                        onPressed: () {
+                          _deleteChat(index); // Call delete function
+                        },
+                      ),
+                    ],
                   ),
                 );
               },
@@ -426,6 +468,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       _renameController.text; // Update the chat title
                 });
                 _saveChatList(); // Save the updated chat list
+                _loadSavedChats(); // Reload saved chats after renaming
                 Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text('Save'),
@@ -435,7 +478,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text('Cancel'),
-            },
+            ),
           ],
         );
       },
@@ -450,44 +493,103 @@ class _MyHomePageState extends State<MyHomePage> {
     await prefs.setStringList('savedChats', chatData);
   }
 
+  // Add this new method to handle selecting a message as context
+  void _selectMessageAsContext(String message) {
+    setState(() {
+      _contextMessage = message; // Set the selected message as context
+    });
+  }
+
+  // Add this new method to handle removing the context message
+  void _removeContextMessage() {
+    setState(() {
+      _contextMessage = null; // Clear the context message
+    });
+  }
+
   // Build a message tile for displaying messages
-  Widget _buildMessageTile(String message) {
+  Widget _buildMessageTile(String message, {VoidCallback? onSelect}) {
     // Check if the message is from Ollama
     bool isOllamaMessage = message.startsWith('Ollama:');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isOllamaMessage
-                ? Colors.green
-                : Colors.white, // Green border for Ollama messages
-            width: 1.0, // Border width
+      child: GestureDetector(
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isOllamaMessage
+                  ? Colors.green
+                  : Colors.white, // Green border for Ollama messages
+              width: 1.0, // Border width
+            ),
+            borderRadius: BorderRadius.circular(8.0), // Rounded corners
           ),
-          borderRadius: BorderRadius.circular(8.0), // Rounded corners
-        ),
-        child: ListTile(
-          title: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              message,
-              style: TextStyle(
-                color: widget.isDarkMode ? Colors.white : Colors.black,
+          child: ListTile(
+            title: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: widget.isDarkMode ? Colors.white : Colors.black,
+                ),
               ),
             ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isOllamaMessage) // Add a copy button only for Ollama messages
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: message));
+                    },
+                  ),
+                // Add a pin button to set the message as context
+                IconButton(
+                  icon: const Icon(Icons.push_pin), // Pin icon
+                  onPressed: () {
+                    _selectMessageAsContext(
+                        message); // Set the message as context
+                  },
+                ),
+              ],
+            ),
           ),
-          trailing:
-              isOllamaMessage // Add a copy button only for Ollama messages
-                  ? IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: message));
-                      },
-                    )
-                  : null,
         ),
       ),
+    );
+  }
+
+  // Add this new method to handle chat deletion with confirmation
+  void _deleteChat(int index) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: const Text('Are you sure you want to delete this chat?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _savedChats.removeAt(index); // Remove the selected chat
+                });
+                _saveChatList(); // Save the updated chat list
+                _loadSavedChats(); // Reload saved chats after deletion
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -536,6 +638,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           Tooltip(
+            message: 'Save Chat', // Tooltip message for save chat
+            child: IconButton(
+              icon: const Icon(Icons.save), // Save icon
+              onPressed: _saveChat, // Save chat when pressed
+            ),
+          ),
+          Tooltip(
             message: 'Settings', // Tooltip message for settings
             child: IconButton(
               icon: const Icon(Icons.settings),
@@ -565,6 +674,19 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
+          // Add a label for the selected context message if it exists
+          if (_contextMessage != null)
+            GestureDetector(
+              onTap: _removeContextMessage, // Remove context on tap
+              child: Container(
+                padding: const EdgeInsets.all(8.0),
+                color: Colors.blueAccent,
+                child: Text(
+                  'Using message as context: $_contextMessage',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
           Expanded(
             child: Stack(
               children: [
@@ -573,7 +695,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     return _buildMessageTile(
-                        _messages[index]); // Use the new message tile
+                      _messages[index],
+                      onSelect: () => _selectMessageAsContext(
+                          _messages[index]), // Pass the message to select
+                    ); // Use the new message tile
                   },
                 ),
                 // Show loading indicator when _isLoading is true
@@ -617,11 +742,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       _sendMessage(); // Trigger send message on Enter
                     },
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.save), // Save button icon
-                  onPressed: _saveChat, // Save chat when pressed
-                  tooltip: 'Save Chat', // Tooltip for the save button
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings), // Settings button

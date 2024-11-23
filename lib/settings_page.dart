@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends StatelessWidget {
   final String initialUrl;
-  final Function(String) onUrlChanged;
+  final ValueChanged<String> onUrlChanged;
   final List<String> availableModels;
   final String selectedModel;
-  final Function(String) onModelChanged;
+  final ValueChanged<String> onModelChanged;
+  final bool saveChatAfterClearing;
+  final ValueChanged<bool?> onSaveChatAfterClearingChanged;
 
   const SettingsPage({
     Key? key,
@@ -14,22 +16,9 @@ class SettingsPage extends StatefulWidget {
     required this.availableModels,
     required this.selectedModel,
     required this.onModelChanged,
+    required this.saveChatAfterClearing,
+    required this.onSaveChatAfterClearingChanged,
   }) : super(key: key);
-
-  @override
-  _SettingsPageState createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  late TextEditingController _urlController;
-  late TextEditingController _modelController;
-
-  @override
-  void initState() {
-    super.initState();
-    _urlController = TextEditingController(text: widget.initialUrl);
-    _modelController = TextEditingController(text: widget.selectedModel);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,32 +28,30 @@ class _SettingsPageState extends State<SettingsPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: _urlController,
-            decoration: const InputDecoration(
-              labelText: 'Ollama URL',
-              hintText: 'http://localhost:11434',
-            ),
-            onChanged: widget.onUrlChanged,
+            decoration: InputDecoration(hintText: 'Enter Ollama URL'),
+            onChanged: onUrlChanged,
+            controller: TextEditingController(text: initialUrl),
           ),
-          const SizedBox(height: 16),
           TextField(
-            controller: _modelController,
+            controller: TextEditingController(text: selectedModel),
             decoration: const InputDecoration(
               labelText: 'Model Name',
               hintText: 'Enter model name',
             ),
           ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Save chat after clearing'),
+              Checkbox(
+                value: saveChatAfterClearing,
+                onChanged: onSaveChatAfterClearingChanged,
+              ),
+            ],
+          ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () {
-            widget.onUrlChanged(_urlController.text);
-            widget.onModelChanged(_modelController.text);
-            Navigator.of(context).pop();
-          },
-          child: const Text('Save'),
-        ),
         TextButton(
           onPressed: () {
             Navigator.of(context).pop();
@@ -73,12 +60,5 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    _modelController.dispose();
-    super.dispose();
   }
 }
