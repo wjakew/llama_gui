@@ -61,10 +61,10 @@ A Flutter desktop application that provides a modern chat interface for local Ol
 ### From Release
 
 - Windows:
-  - Download the latest release from the [Releases](https://github.com/yourusername/altiplano/releases) page.
+  - Download the latest release from the [Releases](https://github.com/wjakew/llama_gui/releases) page.
   - Extract the zip file, and run command `Add-AppPackage -Path ".\altiplano.msix" -AllowUnsigned` - the current release is not signed.
 - MacOS:
-  - Download the latest release from the [Releases](https://github.com/yourusername/altiplano/releases) page.
+  - Download the latest release from the [Releases](https://github.com/wjakew/llama_gui/releases) page.
   - Extract the zip file, and copy the app to the Applications folder.
 
 
